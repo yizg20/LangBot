@@ -252,9 +252,15 @@ class GewechatEventConverter(adapter.EventConverter):
             return None
         
         if '@chatroom' in event["Data"]["FromUserName"]["string"]:
-            # 找出开头的 wxid_ 字符串，以:结尾
-            sender_wxid = event["Data"]["Content"]["string"].split(":")[0]
-
+            
+            # 提取发送者wxid并清理内容
+            content = event["Data"]["Content"]["string"]
+            sender_wxid, separator, actual_content = content.partition(':')
+            event_copy = copy.deepcopy(event)
+            event_copy["Data"]["Content"]["string"] = actual_content.lstrip()  # 移除左侧空格
+            # 使用清理后的内容转换消息链
+            message_chain = await self.message_converter.target2yiri(event_copy, bot_account_id)
+            
             return platform_events.GroupMessage(
                 sender=platform_entities.GroupMember(
                     id=sender_wxid,
